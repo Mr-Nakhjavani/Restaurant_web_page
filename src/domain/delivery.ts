@@ -11,7 +11,7 @@ const normalise = (s: string) =>
     .trim();
 
 /** Common alternative spellings customers use for served areas. */
-const AREA_ALIASES: Record<string, string> = {
+export const AREA_ALIASES: Record<string, string> = {
   "bastakiya": "Al Fahidi",
   "al bastakiya": "Al Fahidi",
   "meena bazaar": "Bur Dubai",

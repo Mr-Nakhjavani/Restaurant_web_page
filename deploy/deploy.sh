@@ -17,6 +17,7 @@ readonly CONFIG_DIR=/etc/bayt-al-ghaf
 readonly APP_USER=baytalghaf
 readonly KEEP_RELEASES=${KEEP_RELEASES:-3}
 readonly DOCS_EXPORT_DIR=${DOCS_EXPORT_DIR:-/root/bayt-al-ghaf-docs}
+readonly RAG_EXPORT_DIR=${RAG_EXPORT_DIR:-/root/bayt-al-ghaf-rag}
 REPO_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 readonly REPO_DIR
 
@@ -171,4 +172,5 @@ find "$BASE_DIR/releases" -mindepth 1 -maxdepth 1 -type d | sort -r | tail -n +$
   done
 
 "$release/deploy/export-docs.sh" "$DOCS_EXPORT_DIR"
+[[ -x $release/deploy/export-rag.sh ]] && "$release/deploy/export-rag.sh" "$RAG_EXPORT_DIR"
 log "deployed ${rev:0:7}"

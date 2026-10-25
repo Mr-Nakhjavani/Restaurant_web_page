@@ -13,6 +13,7 @@ How Bayt Al Ghaf runs as a service on a Linux host with systemd: what is where, 
 | `/etc/bayt-al-ghaf/initial-accounts.env` | Back-office accounts created when the database is first seeded, root-only |
 | `/etc/systemd/system/bayt-al-ghaf.service` | The unit, installed from [`deploy/systemd/bayt-al-ghaf.service`](../deploy/systemd/bayt-al-ghaf.service) |
 | `/root/bayt-al-ghaf-docs/` and `/root/bayt-al-ghaf-docs.zip` | All documentation, refreshed after every deployment |
+| `/root/bayt-al-ghaf-rag/` and `/root/bayt-al-ghaf-rag.zip` | The RAG / GraphRAG corpus (`rag-corpus/`), refreshed after every deployment |
 
 The service runs as the system user `baytalghaf`. It can read its release, write only the release's `.next` folder (image cache), and cannot see `/root` or `/home`. It restarts automatically 5 seconds after any exit and starts at boot.
 
@@ -70,6 +71,7 @@ The seed runs only on an empty database, because re-seeding would overwrite pric
 | Deployed commit | `cat /opt/bayt-al-ghaf/current/REVISION` |
 | Roll back to the previous release | `deploy/deploy.sh --rollback` (code only; migrations are not reverted) |
 | Refresh the documentation export | `deploy/export-docs.sh` |
+| Regenerate and export the RAG corpus | `npm run rag:build && deploy/export-rag.sh` |
 | Back up the database | `docker compose exec -T db pg_dump -U bayt bayt_al_ghaf_live > bayt_al_ghaf_live.sql` |
 
 ## Notes

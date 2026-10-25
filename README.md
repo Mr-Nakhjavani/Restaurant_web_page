@@ -175,12 +175,13 @@ Production URLs, credentials and network settings are intentionally **not** defi
 | `docs/restaurant-knowledge/` | Knowledge base: profile, menu catalogue, ingredients & sauces, allergens, reservations, ordering, delivery, catering, directions, special days, FAQ, policies & edge cases, agent test scenarios, voice-agent reference, data dictionary, index |
 | `docs/api/` | `openapi.json`, `api-reference.md`, `error-codes.md`, `examples.md` (real responses), `voice-agent-integration.md` (workflows) |
 | `docs/integration/` | External agent integration guide, handoff checklist, runnable examples |
+| `rag-corpus/` | Knowledge base for RAG / GraphRAG: 286 in-world documents with metadata, pre-split chunks, a knowledge graph (JSONL, CSV, Neo4j) and 593 evaluation questions with exact answers — see [`rag-corpus/README.md`](rag-corpus/README.md) |
 | `docs/deployment.md` | Running as a systemd service: layout, first-time setup, redeploy, rollback, operations |
 | `docs/architecture.md` | Design, data flow, single source of truth, concurrency, security |
 | `docs/testing.md` | How to test and the latest results |
 | `docs/implementation-report.md` | Implemented / tested / simulated / not available, limitations, next steps |
 
-Regenerate generated docs after changing data or routes: `npm run docs:build` (knowledge base + OpenAPI/API reference/error codes) and, with a test database, `npx tsx scripts/generate-api-examples.ts`.
+Regenerate generated docs after changing data or routes: `npm run docs:build` (knowledge base + OpenAPI/API reference/error codes), `npm run rag:build` (RAG corpus) and, with a test database, `npx tsx scripts/generate-api-examples.ts`.
 
 ## Known limitations
 

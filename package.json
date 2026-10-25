@@ -2,7 +2,7 @@
   "name": "bayt-al-ghaf",
   "version": "1.0.0",
   "private": true,
-  "description": "Bayt Al Ghaf \u2014 fictional Emirati restaurant website, backend and voice-agent-ready API (test environment).",
+  "description": "Bayt Al Ghaf — fictional Emirati restaurant website, backend and voice-agent-ready API (test environment).",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -17,6 +17,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force --skip-seed && tsx prisma/seed.ts",
     "kb:build": "tsx scripts/build-knowledge.ts",
+    "rag:build": "tsx scripts/build-rag-corpus.ts",
     "openapi:export": "tsx scripts/export-openapi.ts",
     "docs:build": "npm run kb:build && npm run openapi:export",
     "test": "npm run test:unit && npm run test:integration",
