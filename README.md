@@ -74,7 +74,7 @@ curl -s 'http://localhost:3000/api/v1/menu/items/mi_friday_platter/availability?
 
 To run the production build locally instead of the dev server: `npm run build && npm start`.
 
-Both `npm run dev` and `npm start` use port 3000 unless `PORT` is set. If the production server is already running on 3000 (`EADDRINUSE`), the site is already up: open it there. To run the dev server alongside it, give it another port **and** its own build folder, so it does not overwrite the `.next` build the production server is serving:
+Both `npm run dev` and `npm start` use port 3000 unless `PORT` is set. If port 3000 is taken (`EADDRINUSE`), the site is usually already running there — for example as the [systemd service](docs/deployment.md) — so use another port: `PORT=3001 npm run dev`. If a production server (`npm start`) is running from **this same folder**, also give the dev server its own build folder so it does not overwrite the `.next` build being served:
 
 ```bash
 PORT=3001 NEXT_DIST_DIR=.next-dev npm run dev
@@ -162,7 +162,7 @@ More detail: [`docs/architecture.md`](docs/architecture.md).
 
 1. Provision PostgreSQL 16 (the migration enables `btree_gist`; the database user needs permission to create it, or enable it beforehand).
 2. Set the environment variables above with real secrets (`APP_ENV=production` or `staging`).
-3. Build and run the Docker image (or `npm ci && npm run build && npm run db:migrate && npm start`). Put it behind a TLS-terminating reverse proxy; set `TRUST_PROXY=true` there.
+3. Build and run the Docker image, or run it as a systemd service with `deploy/deploy.sh` (releases in `/opt/bayt-al-ghaf`, health-checked restarts, rollback — see [`docs/deployment.md`](docs/deployment.md)). Put it behind a TLS-terminating reverse proxy; set `TRUST_PROXY=true` there.
 4. Seed once (`npm run db:seed -- --no-sample`, or `RUN_SEED_ON_START=true` on first start), sign in to `/admin`, change the seeded passwords, create the voice assistant's API key.
 5. Monitor `GET /api/health`; logs are JSON lines on stdout with request IDs.
 
@@ -175,6 +175,7 @@ Production URLs, credentials and network settings are intentionally **not** defi
 | `docs/restaurant-knowledge/` | Knowledge base: profile, menu catalogue, ingredients & sauces, allergens, reservations, ordering, delivery, catering, directions, special days, FAQ, policies & edge cases, agent test scenarios, voice-agent reference, data dictionary, index |
 | `docs/api/` | `openapi.json`, `api-reference.md`, `error-codes.md`, `examples.md` (real responses), `voice-agent-integration.md` (workflows) |
 | `docs/integration/` | External agent integration guide, handoff checklist, runnable examples |
+| `docs/deployment.md` | Running as a systemd service: layout, first-time setup, redeploy, rollback, operations |
 | `docs/architecture.md` | Design, data flow, single source of truth, concurrency, security |
 | `docs/testing.md` | How to test and the latest results |
 | `docs/implementation-report.md` | Implemented / tested / simulated / not available, limitations, next steps |

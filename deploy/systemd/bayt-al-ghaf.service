@@ -1,0 +1,41 @@
+# Bayt Al Ghaf (fictional test restaurant): website, back office and /api/v1.
+# Installed by deploy/deploy.sh to /etc/systemd/system/bayt-al-ghaf.service.
+# Configuration: /etc/bayt-al-ghaf/app.env (see deploy/app.env.example).
+
+[Unit]
+Description=Bayt Al Ghaf restaurant website and API (fictional test restaurant)
+Documentation=file:/opt/bayt-al-ghaf/current/docs/deployment.md
+# PostgreSQL runs in Docker; the app starts without it and reports it in /api/health.
+After=network-online.target docker.service
+Wants=network-online.target
+# Keep retrying after crashes or a missing database instead of giving up.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=baytalghaf
+Group=baytalghaf
+WorkingDirectory=/opt/bayt-al-ghaf/current
+EnvironmentFile=/etc/bayt-al-ghaf/app.env
+Environment=NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+Environment=PATH=/opt/bayt-al-ghaf/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/bayt-al-ghaf/node/bin/node node_modules/next/dist/bin/next start
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+LimitNOFILE=65536
+
+# Hardening: the app only needs to read its release and write .next/cache.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
