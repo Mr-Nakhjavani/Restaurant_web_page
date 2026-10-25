@@ -87,10 +87,11 @@ if [[ -n ${NODE_SOURCE:-} ]]; then
   case $(readlink -f "$NODE_SOURCE") in /|/usr|/usr/local) die "NODE_SOURCE must not be a system prefix" ;; esac
   wanted=$("$NODE_SOURCE/bin/node" -v)
   [[ ${wanted#v} =~ ^(2[0-9]|[3-9][0-9])\. ]] || die "Node.js 20.9+ required (NODE_SOURCE has $wanted)"
-  if [[ ! -x $BASE_DIR/node/bin/node || $("$BASE_DIR/node/bin/node" -v) != "$wanted" ]]; then
+  # A real copy (not a symlink): the service cannot read /root or /home.
+  if [[ -L $BASE_DIR/node || ! -x $BASE_DIR/node/bin/node || $("$BASE_DIR/node/bin/node" -v) != "$wanted" ]]; then
     log "installing Node.js $wanted runtime to $BASE_DIR/node"
     rm -rf "$BASE_DIR/node.tmp"
-    cp -a "$NODE_SOURCE" "$BASE_DIR/node.tmp"
+    cp -a "$(readlink -f "$NODE_SOURCE")" "$BASE_DIR/node.tmp"
     rm -rf "$BASE_DIR/node"
     mv "$BASE_DIR/node.tmp" "$BASE_DIR/node"
   fi
