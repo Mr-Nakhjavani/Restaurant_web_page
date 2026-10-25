@@ -92,6 +92,7 @@ if [[ -n ${NODE_SOURCE:-} ]]; then
     log "installing Node.js $wanted runtime to $BASE_DIR/node"
     rm -rf "$BASE_DIR/node.tmp"
     cp -a "$(readlink -f "$NODE_SOURCE")" "$BASE_DIR/node.tmp"
+    chown -R root:root "$BASE_DIR/node.tmp"
     rm -rf "$BASE_DIR/node"
     mv "$BASE_DIR/node.tmp" "$BASE_DIR/node"
   fi
