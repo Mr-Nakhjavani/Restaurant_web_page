@@ -1,0 +1,456 @@
+// Bayt Al Ghaf — database schema (PostgreSQL).
+// Canonical seed content lives in src/data; at runtime this database is the source of truth.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Single-row operational settings (hours, capacities, policies) validated by src/domain/settings.ts.
+model Settings {
+  id        String   @id @default("default")
+  data      Json
+  profile   Json
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model MenuCategory {
+  id          String     @id
+  slug        String     @unique
+  name        String
+  arabicName  String
+  description String
+  sortOrder   Int
+  items       MenuItem[]
+}
+
+model MenuItem {
+  id                 String               @id
+  slug               String               @unique
+  name               String
+  arabicName         String
+  aliases            String[]
+  categoryId         String
+  category           MenuCategory         @relation(fields: [categoryId], references: [id])
+  kind               String
+  shortDescription   String
+  description        String
+  priceFils          Int
+  portion            Json
+  cookingMethod      String
+  preparationStyle   String
+  spiceLevel         Int
+  spiceAdjustment    Json
+  prepTimeMinutes    Int
+  kitchenPortions    Int
+  customizations     Json
+  mayContain         String[]
+  crossContactNotes  String[]
+  fulfilment         Json
+  bulk               Json
+  maxPerOrder        Int
+  dailyLimit         Int?
+  availabilityRules  Json
+  availabilityNote   String
+  pairings           String[]
+  customerQA         Json
+  featured           Boolean              @default(false)
+  signature          Boolean              @default(false)
+  groupMeal          Boolean              @default(false)
+  imageSrc           String
+  imageAlt           String
+  sortOrder          Int
+  /// available | sold_out | paused
+  availabilityStatus String               @default("available")
+  soldOutUntil       DateTime?            @db.Timestamptz(3)
+  isVisible          Boolean              @default(true)
+  ingredients        MenuItemIngredient[]
+  sauces             MenuItemSauce[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([categoryId])
+}
+
+model Ingredient {
+  id          String               @id
+  name        String
+  arabicName  String?
+  aliases     String[]
+  description String
+  diet        String
+  allergens   String[]
+  mayContain  String[]
+  notes       String?
+  items       MenuItemIngredient[]
+  sauces      SauceIngredient[]
+}
+
+model MenuItemIngredient {
+  itemId       String
+  ingredientId String
+  quantity     String
+  removable    Boolean    @default(false)
+  note         String?
+  position     Int
+  item         MenuItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@id([itemId, ingredientId])
+}
+
+model Sauce {
+  id                String            @id
+  slug              String            @unique
+  name              String
+  arabicName        String?
+  aliases           String[]
+  kind              String
+  houseSpecial      Boolean           @default(false)
+  description       String
+  flavourProfile    String
+  spiceLevel        Int
+  batchYield        String
+  preparation       String
+  servedTemperature String
+  crossContactNotes String[]
+  mayContain        String[]          @default([])
+  sidePriceFils     Int?
+  ingredients       SauceIngredient[]
+  components        SauceComponent[]  @relation("SauceParent")
+  usedInSauces      SauceComponent[]  @relation("SauceChild")
+  items             MenuItemSauce[]
+}
+
+model SauceIngredient {
+  sauceId      String
+  ingredientId String
+  quantity     String
+  position     Int
+  sauce        Sauce      @relation(fields: [sauceId], references: [id], onDelete: Cascade)
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@id([sauceId, ingredientId])
+}
+
+model SauceComponent {
+  sauceId     String
+  componentId String
+  quantity    String
+  sauce       Sauce  @relation("SauceParent", fields: [sauceId], references: [id], onDelete: Cascade)
+  component   Sauce  @relation("SauceChild", fields: [componentId], references: [id])
+
+  @@id([sauceId, componentId])
+}
+
+model MenuItemSauce {
+  itemId   String
+  sauceId  String
+  /// included | marinade | glaze | topping | side
+  role     String
+  note     String?
+  position Int
+  item     MenuItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  sauce    Sauce    @relation(fields: [sauceId], references: [id])
+
+  @@id([itemId, sauceId])
+}
+
+model SpecialPeriod {
+  id            String   @id
+  slug          String   @unique
+  type          String
+  name          String
+  /// Local dates (Asia/Dubai), inclusive
+  startDate     String
+  endDate       String
+  provisional   Boolean  @default(false)
+  notes         String
+  hoursOverride Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Closure {
+  id         String   @id
+  date       String
+  startTime  String?
+  endTime    String?
+  /// all | reservations | orders
+  scope      String
+  reason     String
+  publicNote String
+  createdAt  DateTime @default(now())
+
+  @@index([date])
+}
+
+model DiningTable {
+  id             String        @id
+  code           String        @unique
+  area           String
+  minCovers      Int
+  maxCovers      Int
+  onlineBookable Boolean       @default(true)
+  features       String[]
+  sortOrder      Int
+  active         Boolean       @default(true)
+  reservations   Reservation[]
+}
+
+enum ReservationStatus {
+  pending_confirmation
+  confirmed
+  seated
+  completed
+  cancelled
+  no_show
+  rejected
+}
+
+model Reservation {
+  id                 String             @id @default(cuid())
+  reference          String             @unique
+  accessTokenHash    String
+  status             ReservationStatus
+  /// Local date and start time (Asia/Dubai)
+  date               String
+  time               String
+  startAt            DateTime           @db.Timestamptz(3)
+  endAt              DateTime           @db.Timestamptz(3)
+  /// endAt plus the table turnover buffer; used by the overlap exclusion constraint
+  blockedUntil       DateTime           @db.Timestamptz(3)
+  durationMinutes    Int
+  partySize          Int
+  seatingPreference  String
+  seatingArea        String
+  preferenceMet      Boolean
+  tableId            String
+  table              DiningTable        @relation(fields: [tableId], references: [id])
+  customerName       String
+  phone              String
+  email              String?
+  specialRequests    String?
+  occasion           String?
+  childrenCount      Int                @default(0)
+  highChairs         Int                @default(0)
+  wheelchairAccess   Boolean            @default(false)
+  channel            String
+  source             String
+  apiKeyId           String?
+  cancelledAt        DateTime?          @db.Timestamptz(3)
+  cancellationReason String?
+  cancelledBy        String?
+  createdAt          DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(3)
+  events             ReservationEvent[]
+  orders             Order[]
+
+  @@index([date])
+  @@index([phone])
+  @@index([status])
+}
+
+model ReservationEvent {
+  id            String      @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  type          String
+  fromStatus    String?
+  toStatus      String?
+  note          String?
+  actor         String
+  data          Json?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([reservationId])
+}
+
+enum OrderStatus {
+  pending_confirmation
+  confirmed
+  preparing
+  ready_for_pickup
+  out_for_delivery
+  ready_to_serve
+  completed
+  cancelled
+  rejected
+  not_collected
+  delivery_failed
+}
+
+model Order {
+  id                  String       @id @default(cuid())
+  number              String       @unique
+  /// regular | bulk
+  kind                String
+  accessTokenHash     String
+  status              OrderStatus
+  /// pickup | delivery | dine_in_preorder
+  type                String
+  channel             String
+  source              String
+  apiKeyId            String?
+  customerName        String
+  phone               String
+  email               String?
+  recipientName       String?
+  recipientPhone      String?
+  requestedAsap       Boolean      @default(false)
+  requestedFor        DateTime?    @db.Timestamptz(3)
+  /// Customer-facing accepted time: pickup time, delivery arrival or dine-in serving time
+  promisedAt          DateTime     @db.Timestamptz(3)
+  readyAt             DateTime     @db.Timestamptz(3)
+  prepStartAt         DateTime     @db.Timestamptz(3)
+  slotKey             String
+  localDate           String
+  kitchenPortions     Int
+  subtotalFils        Int
+  discountPercent     Float        @default(0)
+  discountFils        Int          @default(0)
+  deliveryFeeFils     Int          @default(0)
+  totalFils           Int
+  vatFils             Int
+  depositRequiredFils Int          @default(0)
+  paymentMethod       String
+  paymentStatus       String       @default("unpaid")
+  deliveryAddress     Json?
+  deliveryZoneId      String?
+  reservationId       String?
+  reservation         Reservation? @relation(fields: [reservationId], references: [id])
+  specialInstructions String?
+  allergyNoteFlagged  Boolean      @default(false)
+  quoteId             String?      @unique
+  requiresReview      Boolean      @default(false)
+  reviewReason        String?
+  eventType           String?
+  guestCount          Int?
+  companyName         String?
+  cancelledAt         DateTime?    @db.Timestamptz(3)
+  cancellationReason  String?
+  cancelledBy         String?
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @db.Timestamptz(3)
+  items               OrderItem[]
+  events              OrderEvent[]
+  quote               BulkQuote?   @relation(fields: [quoteId], references: [id])
+
+  @@index([localDate])
+  @@index([phone])
+  @@index([status])
+  @@index([slotKey])
+}
+
+model OrderItem {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId        String
+  name              String
+  quantity          Int
+  unitBasePriceFils Int
+  unitOptionsFils   Int
+  unitPriceFils     Int
+  lineTotalFils     Int
+  selectedOptions   Json
+  kitchenPortions   Int
+  allergens         String[]
+  notes             String?
+  /// active | removed (e.g. became unavailable after the order was placed)
+  status            String   @default("active")
+  removedReason     String?
+  position          Int
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+model OrderEvent {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type       String
+  fromStatus String?
+  toStatus   String?
+  note       String?
+  actor      String
+  data       Json?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([orderId])
+}
+
+model BulkQuote {
+  id           String   @id @default(cuid())
+  reference    String   @unique
+  request      Json
+  result       Json
+  feasible     Boolean
+  portions     Int
+  totalFils    Int
+  fulfilmentAt DateTime @db.Timestamptz(3)
+  expiresAt    DateTime @db.Timestamptz(3)
+  apiKeyId     String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  order        Order?
+}
+
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  scope          String
+  key            String
+  requestHash    String
+  /// processing | completed
+  state          String
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt      DateTime @db.Timestamptz(3)
+
+  @@unique([scope, key])
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  /// admin | staff
+  role         String
+  passwordHash String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  prefix     String
+  keyHash    String    @unique
+  /// agent | staff | admin
+  scopes     String[]
+  createdBy  String?
+  lastUsedAt DateTime? @db.Timestamptz(3)
+  revokedAt  DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([entityType, entityId])
+}

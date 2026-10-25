@@ -1,0 +1,47 @@
+# Bayt Al Ghaf — local development stack.
+#   docker compose up -d db          -> PostgreSQL only (run the app with `npm run dev`)
+#   docker compose up --build        -> PostgreSQL + production build of the app
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bayt
+      POSTGRES_PASSWORD: bayt_dev_password
+      POSTGRES_DB: bayt_al_ghaf
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bayt -d bayt_al_ghaf"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bayt:bayt_dev_password@db:5432/bayt_al_ghaf?schema=public
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      APP_ENV: ${APP_ENV:-staging}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?Set ADMIN_SESSION_SECRET (32+ random characters) in your shell or .env}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@baytalghaf.example}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe-Admin-2026}
+      SEED_STAFF_EMAIL: ${SEED_STAFF_EMAIL:-staff@baytalghaf.example}
+      SEED_STAFF_PASSWORD: ${SEED_STAFF_PASSWORD:-ChangeMe-Staff-2026}
+      SEED_AGENT_API_KEY: ${SEED_AGENT_API_KEY:-bg_dev_agent_key_for_local_testing_only}
+      SIMULATE_KITCHEN_PROGRESS: ${SIMULATE_KITCHEN_PROGRESS:-true}
+      ENABLE_TEST_CLOCK: ${ENABLE_TEST_CLOCK:-false}
+      RUN_SEED_ON_START: ${RUN_SEED_ON_START:-true}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+
+volumes:
+  db-data:
