@@ -50,7 +50,7 @@ Every piece of work done on the project, written as Jira issues: type, status, p
 | BAG-38 | Story | Back-office editing of ingredients, sauces and new dishes | To Do | Low | 2026-10-25 |
 | BAG-39 | Task | Slimmer Docker image | To Do | Low | 2026-10-25 |
 | BAG-40 | Task | Replace stand-in photography | To Do | Low | 2026-10-25 |
-| BAG-41 | Task | Reset the development database | Blocked | Low | 2026-10-25 |
+| BAG-41 | Task | Reset the development database | Done | Low | 2026-10-25 |
 | BAG-42 | Bug | Awkward generated wording in corpus documents | Done | Medium | 2026-10-25 |
 | BAG-43 | Bug | Allergen matrix produced a 1,131-word chunk | Done | Medium | 2026-10-25 |
 | BAG-44 | Bug | Two evaluation questions had identical wording | Done | Low | 2026-10-25 |
@@ -973,9 +973,18 @@ Every piece of work done on the project, written as Jira issues: type, status, p
 | Field | Value |
 | --- | --- |
 | Type | Task |
-| Status | Blocked |
+| Status | Done |
 | Priority | Low |
 
 **Summary:** The development database `bayt_al_ghaf` holds seed samples plus a few cancelled records from example runs.
 
 **Description:** Prisma refuses an AI-initiated `prisma migrate reset` without the user's explicit consent, so it was not reset. Unblock by confirming that the development database may be wiped. The live database (`bayt_al_ghaf_live`) and the test databases are unaffected.
+
+**Work log:**
+- 2026-10-25 17:55 — Reporter asked for the reset. Checked the target: `.env` points at `bayt_al_ghaf` (development), the service uses `bayt_al_ghaf_live`, and nothing else was connected. Dev data: 12 reservations, 8 orders, 6 quotes (seed samples and test runs).
+- 2026-10-25 17:55 — Backup: `/root/bayt-al-ghaf-backups/bayt_al_ghaf-dev-before-reset-20261025-175547.sql.gz` (23 tables, root-only).
+- 2026-10-25 17:56 — `npx prisma migrate reset --force --skip-seed` stopped by Prisma's AI safety check, which requires a fresh confirmation given after its warning. Waiting for the reporter.
+- 2026-10-25 17:59 — Reporter confirmed (“yes”). Ran `prisma migrate reset --force --skip-seed` with the confirmation, then `npm run db:seed`: both migrations re-applied, exclusion constraint present; 46 dishes, 113 ingredients, 19 sauces, 31 tables, 2 back-office users, the development API key and fresh samples (10 reservations, 4 orders, 1 quote).
+- 2026-10-25 17:59 — Verified the live database is unchanged (0 reservations, 0 orders, 1 API key, 2 users) and the live site healthy (`/api/health` ok, `/menu` 200).
+
+**Resolution:** Done. The previous contents are in the backup above.
